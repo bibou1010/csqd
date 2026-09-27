@@ -13,39 +13,36 @@ from moviepy.editor import (
     concatenate_audioclips,
 )
 
-from config import (
-    VIDEO_WIDTH,
-    VIDEO_HEIGHT,
-    FPS,
-    MUSIC_DIR,
-    MUSIC_VOLUME,
-)
+from config import FPS, MUSIC_DIR
+import settings_store
 
 
 def _ken_burns_clip(image_path: str, duration: float):
     """Crée un léger effet de zoom lent (Ken Burns) sur une image fixe."""
+    width, height = settings_store.video_dimensions()
     clip = ImageClip(image_path).set_duration(duration)
-    clip = clip.resize(height=VIDEO_HEIGHT)
-    if clip.w < VIDEO_WIDTH:
-        clip = clip.resize(width=VIDEO_WIDTH)
+    clip = clip.resize(height=height)
+    if clip.w < width:
+        clip = clip.resize(width=width)
 
     zoom_ratio = 1.12  # zoom final à 112%
     clip = clip.resize(lambda t: 1 + (zoom_ratio - 1) * (t / duration))
     clip = clip.set_position(("center", "center"))
-    return CompositeVideoClip([clip], size=(VIDEO_WIDTH, VIDEO_HEIGHT)).set_duration(duration)
+    return CompositeVideoClip([clip], size=(width, height)).set_duration(duration)
 
 
 def _video_scene_clip(video_path: str, duration: float):
+    width, height = settings_store.video_dimensions()
     clip = VideoFileClip(video_path)
     if clip.duration < duration:
         # on boucle si la vidéo source est trop courte
         loops = int(duration // clip.duration) + 1
         clip = concatenate_videoclips([clip] * loops)
     clip = clip.subclip(0, duration)
-    clip = clip.resize(height=VIDEO_HEIGHT)
-    if clip.w < VIDEO_WIDTH:
-        clip = clip.resize(width=VIDEO_WIDTH)
-    clip = clip.crop(x_center=clip.w / 2, y_center=clip.h / 2, width=VIDEO_WIDTH, height=VIDEO_HEIGHT)
+    clip = clip.resize(height=height)
+    if clip.w < width:
+        clip = clip.resize(width=width)
+    clip = clip.crop(x_center=clip.w / 2, y_center=clip.h / 2, width=width, height=height)
     return clip.without_audio()
 
 
@@ -64,7 +61,7 @@ def _pick_background_music(total_duration: float):
     if music.duration < total_duration:
         loops = int(total_duration // music.duration) + 1
         music = concatenate_audioclips([music] * loops)
-    music = music.subclip(0, total_duration).volumex(MUSIC_VOLUME)
+    music = music.subclip(0, total_duration).volumex(settings_store.get()["music_volume"])
     return music
 
 

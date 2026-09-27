@@ -5,11 +5,15 @@ import os
 import hashlib
 import requests
 
-from config import PEXELS_API_KEY, CACHE_DIR
+from config import CACHE_DIR
+import settings_store
 
-HEADERS = {"Authorization": PEXELS_API_KEY}
 PHOTO_SEARCH_URL = "https://api.pexels.com/v1/search"
 VIDEO_SEARCH_URL = "https://api.pexels.com/videos/search"
+
+
+def _api_key():
+    return settings_store.get()["pexels_api_key"]
 
 
 def _cache_path(url: str, ext: str) -> str:
@@ -18,7 +22,7 @@ def _cache_path(url: str, ext: str) -> str:
     return os.path.join(CACHE_DIR, f"{h}.{ext}")
 
 
-def _download(url: str, ext: str) -> str:
+def download(url: str, ext: str) -> str:
     path = _cache_path(url, ext)
     if os.path.exists(path):
         return path
@@ -30,53 +34,46 @@ def _download(url: str, ext: str) -> str:
     return path
 
 
-def search_video(query: str, min_width: int = 720):
-    """Cherche une vidéo libre de droit correspondant à la requête.
-    Retourne le chemin local du fichier téléchargé, ou None."""
-    params = {"query": query, "per_page": 5, "orientation": "portrait"}
-    resp = requests.get(VIDEO_SEARCH_URL, headers=HEADERS, params=params, timeout=20)
+def search_video_candidates(query: str, per_page: int = 4, page: int = 1):
+    api_key = _api_key()
+    if not api_key:
+        return []
+    headers = {"Authorization": api_key}
+    params = {"query": query, "per_page": per_page, "page": page, "orientation": "portrait"}
+    resp = requests.get(VIDEO_SEARCH_URL, headers=headers, params=params, timeout=20)
     resp.raise_for_status()
-    results = resp.json().get("videos", [])
-    if not results:
-        return None
+    candidates = []
+    for video in resp.json().get("videos", []):
+        files = sorted(video.get("video_files", []), key=lambda f: abs((f.get("width") or 0) - 720))
+        if not files:
+            continue
+        pictures = video.get("video_pictures", [])
+        thumbnail = pictures[0]["picture"] if pictures else video.get("image", "")
+        candidates.append({
+            "id": f"pexels_video_{video['id']}",
+            "source": "pexels",
+            "type": "video",
+            "thumbnail": thumbnail,
+            "download_url": files[0]["link"],
+        })
+    return candidates
 
-    video = results[0]
-    # on choisit le fichier HD le plus proche de la largeur voulue
-    files = sorted(video["video_files"], key=lambda f: abs((f.get("width") or 0) - min_width))
-    best = files[0]
-    return _download(best["link"], "mp4")
 
-
-def search_photo(query: str):
-    """Cherche une photo libre de droit correspondant à la requête.
-    Retourne le chemin local du fichier téléchargé, ou None."""
-    params = {"query": query, "per_page": 5, "orientation": "portrait"}
-    resp = requests.get(PHOTO_SEARCH_URL, headers=HEADERS, params=params, timeout=20)
+def search_photo_candidates(query: str, per_page: int = 4, page: int = 1):
+    api_key = _api_key()
+    if not api_key:
+        return []
+    headers = {"Authorization": api_key}
+    params = {"query": query, "per_page": per_page, "page": page, "orientation": "portrait"}
+    resp = requests.get(PHOTO_SEARCH_URL, headers=headers, params=params, timeout=20)
     resp.raise_for_status()
-    results = resp.json().get("photos", [])
-    if not results:
-        return None
-
-    photo = results[0]
-    url = photo["src"]["large2x"]
-    return _download(url, "jpg")
-
-
-def fetch_asset_for_scene(query: str):
-    """Essaie d'abord une vidéo, puis une photo en repli.
-    Retourne (chemin_fichier, type) avec type in {"video", "photo", None}."""
-    try:
-        video_path = search_video(query)
-        if video_path:
-            return video_path, "video"
-    except requests.RequestException:
-        pass
-
-    try:
-        photo_path = search_photo(query)
-        if photo_path:
-            return photo_path, "photo"
-    except requests.RequestException:
-        pass
-
-    return None, None
+    candidates = []
+    for photo in resp.json().get("photos", []):
+        candidates.append({
+            "id": f"pexels_photo_{photo['id']}",
+            "source": "pexels",
+            "type": "photo",
+            "thumbnail": photo["src"]["medium"],
+            "download_url": photo["src"]["large2x"],
+        })
+    return candidates

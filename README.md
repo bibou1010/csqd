@@ -1,9 +1,14 @@
 # Texte → Vidéo (images/vidéos libres de droit)
 
 Génère automatiquement une vidéo à partir d'un texte : le script découpe le
-récit en scènes, cherche sur **Pexels** (gratuit) des images ou vidéos
-correspondant à chaque scène, puis assemble le tout avec une musique de
-fond et, en option, une voix off synthétique.
+récit en scènes, cherche sur **Pexels et Pixabay** (gratuits) des images ou
+vidéos correspondant à chaque scène, te laisse **choisir ou changer**
+l'image/vidéo de chaque scène parmi plusieurs propositions, puis assemble
+le tout avec une musique de fond et, en option, une voix off synthétique.
+
+Une page **⚙️ Réglages** (lien en haut de l'app) permet de changer les clés
+API, le nombre d'options par scène, le format vidéo, la voix off et le
+volume de la musique directement depuis le navigateur, sans toucher au code.
 
 ## ☁️ Héberger en ligne (accessible depuis n'importe où, sans installation locale)
 
@@ -21,8 +26,9 @@ Gratuit via **Render**, sans ligne de commande — tout se fait sur des sites we
    - **Instance Type** : Free
    - Dans **Environment Variables**, ajoute :
      - `PEXELS_API_KEY` = ta clé Pexels
+     - `PIXABAY_API_KEY` = ta clé Pixabay (optionnel, plus de choix par scène)
      - `APP_PASSWORD` = un mot de passe de ton choix (**important**, sinon
-       n'importe qui trouvant l'URL peut utiliser ton app et ta clé Pexels)
+       n'importe qui trouvant l'URL peut utiliser ton app et tes clés)
 7. Clique **Create Web Service**. Le premier build prend 3-5 minutes.
 8. Une fois prêt, Render te donne une URL du type `https://text2video-xxxx.onrender.com`
    — ouvre-la, entre ton mot de passe, et c'est en ligne.
@@ -31,7 +37,10 @@ Gratuit via **Render**, sans ligne de commande — tout se fait sur des sites we
 (la première requête après la veille prend ~30s à réveiller le service) et le
 stockage n'est pas garanti entre deux redémarrages : télécharge chaque vidéo
 tout de suite après génération plutôt que de compter dessus pour la retrouver
-plus tard.
+plus tard. Pour la même raison, préfère définir tes clés API et réglages
+comme variables d'environnement Render (persistantes) plutôt que via la page
+⚙️ Réglages une fois hébergé (celle-ci est surtout utile en local, où elle
+survit aux redémarrages).
 
 ---
 
@@ -45,7 +54,7 @@ Tu n'as que 3 choses à faire :
    - macOS/Linux : ouvre un terminal dans le dossier et tape `chmod +x install.sh run.sh && ./install.sh`
    - Windows : double-clique sur `install.bat`
    - (il installe ffmpeg automatiquement — sur Mac il peut te demander ton mot de passe admin, c'est normal)
-2. Crée un compte gratuit sur [pexels.com/api](https://www.pexels.com/api/) et colle ta clé quand le script la demande.
+2. Crée un compte gratuit sur [pexels.com/api](https://www.pexels.com/api/) et colle ta clé quand le script la demande. (Optionnel : ajoute aussi une clé [Pixabay](https://pixabay.com/api/docs/) dans `.env` en `PIXABAY_API_KEY=` pour plus de choix par scène.)
 3. Lance l'appli : `./run.sh` ou double-clic sur `run.bat`. Le navigateur s'ouvre tout seul.
 
 C'est tout — ffmpeg, l'environnement Python et les dépendances s'installent sans autre intervention.

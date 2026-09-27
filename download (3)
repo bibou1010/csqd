@@ -5,4 +5,4 @@ assets/cache/*
 assets/output/*
 __pycache__/
 *.pyc
-.git/
+ffmpeg_path.txt

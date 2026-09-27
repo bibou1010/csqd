@@ -1,0 +1,7 @@
+venv/
+.env
+assets/cache/*
+assets/output/*
+__pycache__/
+*.pyc
+.git/
